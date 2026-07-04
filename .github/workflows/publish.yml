@@ -1,0 +1,69 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      PROJECT_PATH: src/Skickamejl.Sdk/Skickamejl.Sdk.csproj
+      SOLUTION_PATH: src/Skickamejl.Sdk.slnx
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Bump version
+      id: bump
+      run: |
+        VERSION=$(grep -oP '<Version>\K[^<]+' "$PROJECT_PATH")
+        echo "Current version: $VERSION"
+        MAJOR=$(echo "$VERSION" | cut -d. -f1)
+        MINOR=$(echo "$VERSION" | cut -d. -f2)
+        PATCH=$(echo "$VERSION" | cut -d. -f3)
+        PATCH=$((PATCH + 1))
+        NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+        echo "New version: $NEW_VERSION"
+        sed -i "s/<Version>$VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$PROJECT_PATH"
+        echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+    - name: Commit version bump
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add "$PROJECT_PATH"
+        git commit -m "Bump version to ${{ steps.bump.outputs.version }}"
+
+    - name: Restore
+      run: dotnet restore "$SOLUTION_PATH"
+
+    - name: Test
+      run: dotnet test "$SOLUTION_PATH" -c Release --no-restore
+
+    - name: Build
+      run: dotnet build "$SOLUTION_PATH" -c Release --no-restore
+
+    - name: Pack
+      run: dotnet pack "$PROJECT_PATH" -c Release -o ./artifacts --no-build
+
+    - name: NuGet login
+      uses: NuGet/login@v1
+      id: nuget_login
+      with:
+        user: MRCCollective
+
+    - name: Publish to NuGet.org
+      run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+
+    - name: Push version bump
+      run: git push

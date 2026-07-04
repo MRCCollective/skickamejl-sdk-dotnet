@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Skickamejl.Sdk/Skickamejl.Sdk.csproj" />
+  <Folder Name="/Solution Items/">
+    <File Path="../README.md" />
+  </Folder>
+  <Project Path="../test/Skickamejl.Sdk.Tests/Skickamejl.Sdk.Tests.csproj" />
+</Solution>

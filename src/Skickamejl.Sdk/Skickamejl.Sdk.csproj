@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Skickamejl.Sdk</PackageId>
+    <Version>0.1.0</Version>
+    <Title>Skickamejl .NET SDK</Title>
+    <Authors>Skickamejl</Authors>
+    <Description>Minimal .NET client for the Skickamejl message API.</Description>
+    <PackageTags>skickamejl;email;sdk</PackageTags>
+    <RepositoryUrl>https://github.com/MRCCollective/skickamejl-sdk-dotnet</RepositoryUrl>
+    <PackageProjectUrl>https://skickamejl.se</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
