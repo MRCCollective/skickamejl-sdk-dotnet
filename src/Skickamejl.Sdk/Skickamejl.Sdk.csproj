@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>Skickamejl.Sdk</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Title>Skickamejl .NET SDK</Title>
     <Authors>Skickamejl</Authors>
     <Description>Minimal .NET client for the Skickamejl message API.</Description>
