@@ -58,7 +58,3 @@ Either `TextBody` or `HtmlBody` is required. When set, `TrackLinks` must be `all
 dotnet build .\src\Skickamejl.Sdk.slnx
 dotnet test .\src\Skickamejl.Sdk.slnx
 ```
-
-## Publishing
-
-The GitHub Actions workflow in `.github/workflows/publish.yml` publishes to NuGet.org on pushes to `master` and manual dispatches. NuGet trusted publishing must be configured for the `MRCCollective/skickamejl-sdk-dotnet` repository and the `publish.yml` workflow under the NuGet account that owns the policy.

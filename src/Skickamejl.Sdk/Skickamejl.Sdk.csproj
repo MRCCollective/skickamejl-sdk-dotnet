@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <PackageId>Skickamejl.Sdk</PackageId>
     <Version>0.1.1</Version>
+    <PackageIcon>icon.png</PackageIcon>
     <Title>Skickamejl .NET SDK</Title>
     <Authors>Skickamejl</Authors>
     <Description>Minimal .NET client for the Skickamejl message API.</Description>
@@ -18,6 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="icon.png" Pack="true" PackagePath="\" />
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
