@@ -47,7 +47,45 @@ public sealed class SkickamejlClient : IDisposable
         ArgumentNullException.ThrowIfNull(request);
         ValidateRequest(request);
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/Messages");
+        return await SendJsonAsync("api/Messages", request, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<SendMessageResponse> SendTemplateMessageAsync(
+        string templateAlias,
+        SendTemplateMessageRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(templateAlias))
+        {
+            throw new ArgumentException("Template alias is required.", nameof(templateAlias));
+        }
+
+        if (templateAlias.Length > 120)
+        {
+            throw new ArgumentException("Template alias must be at most 120 characters.", nameof(templateAlias));
+        }
+
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateTemplateRequest(request);
+
+        var escapedAlias = Uri.EscapeDataString(templateAlias.Trim());
+        return await SendJsonAsync($"api/Templates/{escapedAlias}/send", request, cancellationToken).ConfigureAwait(false);
+    }
+
+    public void Dispose()
+    {
+        if (ownsHttpClient)
+        {
+            httpClient.Dispose();
+        }
+    }
+
+    private async Task<SendMessageResponse> SendJsonAsync<TRequest>(
+        string requestUri,
+        TRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUri);
         httpRequest.Headers.TryAddWithoutValidation(ApiKeyHeaderName, apiKey);
         httpRequest.Content = new StringContent(
             JsonSerializer.Serialize(request, JsonOptions),
@@ -78,14 +116,6 @@ public sealed class SkickamejlClient : IDisposable
             ?? $"Skickamejl API returned HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).";
 
         throw new SkickamejlApiException(response.StatusCode, message, responseBody, problem);
-    }
-
-    public void Dispose()
-    {
-        if (ownsHttpClient)
-        {
-            httpClient.Dispose();
-        }
     }
 
     private static SkickamejlProblemDetails? TryDeserializeProblem(string responseBody)
@@ -125,6 +155,26 @@ public sealed class SkickamejlClient : IDisposable
         if (string.IsNullOrWhiteSpace(request.TextBody) && string.IsNullOrWhiteSpace(request.HtmlBody))
         {
             throw new ArgumentException("Either TextBody or HtmlBody is required.", nameof(request));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.TrackLinks) &&
+            !string.Equals(request.TrackLinks.Trim(), "all", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(request.TrackLinks.Trim(), "none", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("TrackLinks must be either 'all' or 'none'.", nameof(request));
+        }
+    }
+
+    private static void ValidateTemplateRequest(SendTemplateMessageRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.From))
+        {
+            throw new ArgumentException("From is required.", nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.To))
+        {
+            throw new ArgumentException("To is required.", nameof(request));
         }
 
         if (!string.IsNullOrWhiteSpace(request.TrackLinks) &&

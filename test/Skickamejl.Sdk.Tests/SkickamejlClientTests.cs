@@ -95,6 +95,91 @@ public sealed class SkickamejlClientTests
     }
 
     [Fact]
+    public async Task SendTemplateMessageAsync_PostsTemplateMessageWithApiKeyAndJsonBody()
+    {
+        var handler = new RecordingHandler(
+            HttpStatusCode.Accepted,
+            """
+            {
+              "messageId": "msg_template_123",
+              "deliveryId": "delivery_template_123",
+              "jobId": "delivery_template_123",
+              "serverId": "7f76d011-a5d2-4d7e-a7b4-c8c3037fc98a",
+              "status": "queued",
+              "messageStream": "transactional",
+              "queuedAtUtc": "2026-07-04T11:21:50Z"
+            }
+            """);
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.example.test/")
+        };
+        var client = new SkickamejlClient(httpClient, " test-token ");
+
+        var response = await client.SendTemplateMessageAsync(
+            "orderbekraftelse",
+            new SendTemplateMessageRequest(
+                From: "sender@example.com",
+                To: "recipient@example.com")
+            {
+                SenderName = "Skickamejl",
+                ReplyTo = "support@example.com",
+                Variables = new Dictionary<string, string>
+                {
+                    ["customerName"] = "Anna",
+                    ["orderNumber"] = "12345"
+                },
+                MessageStream = "transactional",
+                Tag = "order",
+                TrackOpens = true,
+                TrackLinks = "none",
+                Metadata = new Dictionary<string, string>
+                {
+                    ["customerId"] = "123"
+                }
+            });
+
+        Assert.Equal("msg_template_123", response.MessageId);
+        Assert.Equal("queued", response.Status);
+        Assert.Equal(HttpMethod.Post, handler.Method);
+        Assert.Equal(new Uri("https://api.example.test/api/Templates/orderbekraftelse/send"), handler.RequestUri);
+        Assert.Equal("test-token", handler.ApiKey);
+        Assert.Equal("application/json", handler.ContentType);
+
+        using var requestJson = JsonDocument.Parse(handler.RequestBody!);
+        var root = requestJson.RootElement;
+        Assert.Equal("sender@example.com", root.GetProperty("from").GetString());
+        Assert.Equal("recipient@example.com", root.GetProperty("to").GetString());
+        Assert.Equal("Skickamejl", root.GetProperty("senderName").GetString());
+        Assert.Equal("support@example.com", root.GetProperty("replyTo").GetString());
+        Assert.Equal("Anna", root.GetProperty("variables").GetProperty("customerName").GetString());
+        Assert.Equal("12345", root.GetProperty("variables").GetProperty("orderNumber").GetString());
+        Assert.Equal("transactional", root.GetProperty("messageStream").GetString());
+        Assert.Equal("order", root.GetProperty("tag").GetString());
+        Assert.True(root.GetProperty("trackOpens").GetBoolean());
+        Assert.Equal("none", root.GetProperty("trackLinks").GetString());
+        Assert.Equal("123", root.GetProperty("metadata").GetProperty("customerId").GetString());
+    }
+
+    [Fact]
+    public async Task SendTemplateMessageAsync_RejectsMissingAliasBeforeSending()
+    {
+        var handler = new RecordingHandler(HttpStatusCode.Accepted, "{}");
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.example.test/")
+        };
+        var client = new SkickamejlClient(httpClient, "test-token");
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            client.SendTemplateMessageAsync("", CreateValidTemplateRequest()));
+
+        Assert.Equal("templateAlias", exception.ParamName);
+        Assert.Contains("Template alias is required.", exception.Message);
+        Assert.Equal(0, handler.CallCount);
+    }
+
+    [Fact]
     public async Task SendMessageAsync_RejectsMissingBodiesBeforeSending()
     {
         var handler = new RecordingHandler(HttpStatusCode.Accepted, "{}");
@@ -146,6 +231,11 @@ public sealed class SkickamejlClientTests
         {
             TextBody = "Plain text body"
         };
+
+    private static SendTemplateMessageRequest CreateValidTemplateRequest() =>
+        new(
+            From: "sender@example.com",
+            To: "recipient@example.com");
 
     private sealed class RecordingHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
     {
